@@ -1,0 +1,467 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% --- PACKAGES FROM TARGET TEMPLATE ---
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,
+            linkcolor=blue,      % color for internal links (sections, figures)
+            citecolor=blue,      % color for citations
+            urlcolor=blue]       % color for URLs
+           {hyperref}
+
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{float}
+
+% --- PACKAGES KEPT FROM YOUR ORIGINAL CODE ---
+\usepackage{subcaption} 
+
+% correct bad hyphenation here
+\hyphenation{op-tical net-works semi-conduc-tor}
+
+
+\begin{document}
+
+\title{EEG-Based Depression Detection}
+
+\author{
+\IEEEauthorblockN{Jalpa Patel, Hitarth Shah, Divya Jaisansaria, Suhani Acharya, Tanmoy Hazra, Ritu Tiwari}
+\IEEEauthorblockA{
+Department of Artificial Intelligence,\\
+Sardar Vallabhbhai National Institute of Technology, Surat, India
+}
+}
+
+
+\maketitle
+
+\begin{abstract}
+This study is based on improving diagnosis of depression  by analyzing electroencephalography (EEG) signals. These signals can provide useful information but are often complicated to interpret. We compare two methods for classifying these signals using the 128 channel MODMA dataset, which includes data from individuals with Major Depressive Disorder (MDD) and healthy controls (HC). We initially processed the data through techniques such as band-pass filtering, Common Average Referencing (CAR), and Independent Component Analysis (ICA). Then, we applied two approaches: traditional Machine Learning models (XGBoost, Random Forest, Logistic Regression) on extracted statistical and spectral features, versus a hybrid 1D CNN and BiLSTM architecture for automated temporal feature learning. The hybrid deep learning model outperformed the traditional methods and baseline models, with an accuracy of 96.2\% and a balanced F1 score of 0.95. Beyond accuracy, the hybrid model demonstrated stronger capability in capturing non-linear and non-stationary EEG dynamics enabling more reliable early depression screening using EEG signals. It can be now stated that advanced neural models can set a new standard in mental health diagnostics.
+\end{abstract}
+
+
+\begin{IEEEkeywords}
+EEG, Depression Detection, MODMA, Machine Learning, Deep Learning, CNN, BiLSTM, Signal Processing, ICA, CAR.
+\end{IEEEkeywords}
+
+\section{Introduction}
+Depression is a significant condition, but diagnosing it often depends on patient reports and clinical interviews. Therefore better data-driven methods are required for diagnosing depression. One effective technology for this demand is electroencephalography (EEG). EEG provides high temporal resolution, allowing researchers to study the brain activities and connections associated to Major Depressive Disorder (MDD).
+
+Many traditional methods for detecting depression with EEG use manually extracted features, such as power spectral density and entropy, analyzed with machine learning models . While these methods have some success, they struggle with EEG’s complex nature, which include changing conditions like artifacts, eye and muscle movements and noise that can decrease the accuracy. New advancements in deep learning can heltp to diagnose the depression without mnanually extracting the features. Hybrid models combine Convolutional Neural Networks (CNNs) to analyze spatial data with Long Short Term Memory (LSTM) networks to study data over time.
+
+This study provides a comparison of these two methodologies for depression classification using the 128-channel MODMA dataset. We compare the effectiveness of a hybrid CNN-LSTM architecture with traditional ML models. Our approach includes a consistent preprocessing pipeline that features band-pass filtering, notch-filtering and Independent Component Analysis (ICA). By developing a framework that captures complex, non-linear neural relationships, this work contributes to a more reliable system for depression detection, supporting early diagnosis and personalized mental healthcare.
+
+Section~\ref{sec:lr} discusses associated works on this topic. Section~\ref{sec:dataset} gives an overview of the dataset, data preprocessing and feature extraction. Section~\ref{sec:methodology} explains the methodology and the experimental setup. Section~\ref{sec:results} contains the results of our models. Section~\ref{sec:discussion} is the discussion of the results, while the Section~\ref{sec:conclusion} provides the conclusion and future work.
+
+Fig \ref{fig:modma_eeg_image_1} depicts the approach used in this study for depression detection using EEG signals.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\columnwidth]{images/architecture.png}
+\caption{Overall workflow of the proposed EEG-based depression detection framework, illustrating data preprocessing, feature extraction for ML models, and direct temporal feature learning for the CNN–BiLSTM hybrid model leading to final classification.}
+\label{fig:modma_eeg_image_1} % Changed label to be unique
+\end{figure}
+
+
+\section{Literature Review}
+\label{sec:lr}
+Recent research extensively explores both machine learning (ML) and deep learning (DL) for EEG-based depression detection. DL models show a vast range of outcomes; for example, Li et al.~\cite{b13} developed a resting-state CNN achieving 66.40\% accuracy, while more advanced architectures like the EEG Mind Transformer by Liu et al.~\cite{b14} show high accuracy by automatically learning hierarchical features. However, traditional ML approaches remain highly competitive. Khan et al.~\cite{b11} achieved 96.36\% accuracy on the MODMA dataset with a Best First Tree, and Sarkar et al.~\cite{b3} reported 97.85\% accuracy using SVM, depending on robust feature engineering like Power Spectral Density (PSD).
+
+A significant research gap still exists in spite of these differing findings: there aren't any straightforward, equitable comparisons between ML and DL techniques that use the same dataset and standardized preprocessing and validation for both. The present study fills this gap by evaluating a hybrid CNN and BiLSTM model on the MODMA dataset against baseline classifiers (Logistic Regression, Random Forest, XGBoost), using a consistent preprocessing pipeline to guarantee a reliable performance comparison.
+
+
+\section{Dataset}
+\label{sec:dataset}
+This study is done on Multi Modal Open Dataset for Mental Disorder Analysis (MODMA), contains EEG recordings from both 128 electrode and 3 electrode devices of healthy participants having age 16–56, categorized as Major Depressive Disorder (MDD) or Healthy Control (HC). This study focuses on the 128 channel resting state EEG data, collected when participants are relaxed with closed eyes. 
+Total no of participants were 53 , out of which 20 participants were identified with Major Depressive Disorder (MDD) and 9 as Healthy Controls (HC).
+
+\subsection{Data Preprocessing}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.7\linewidth]{images/eeg_preprocessing_flowchart.png}
+    \caption{EEG Data Preprocessing Pipeline.}
+    \label{fig:eeg_preprocessing_flowchart}
+\end{figure}
+
+The raw EEG signals are preprocessed using MNE Python library through an end to end pipeline. Processing is done to remove the noise, ocular and muscular artifacts , retain the clean signals. The cleaned signals are divided into 2-second epochs (128 Hz sampling rate), each epoch labeled as either Major Depressive Disorder (MDD) or Healthy Control (HC).
+
+Fig \ref{fig:eeg_preprocessing_flowchart} shows the end-to-end EEG Data Preprocessing Pipeline.
+
+\subsection{Feature Extraction \& Visualization}
+All EEG recordings were segmented into continuous 2-second segments, or epochs. Each epoch contained EEG data from multiple channels, and both time domain and frequency domain features were extracted from each channel to summarize the signals numerically for machine learning models. All extracted features from every EEG channel were combined into a single feature vector for each epoch. 
+
+Fig \ref{fig:freq_barplot} depcits the average EEG Power across frequency bands.
+
+\subsubsection{Time-Domain Features}
+Time-domain features tells us the statistical properties of the signals like mean, standard deviation, minimum, maximum, skewness, and kurtosis.
+
+Table \ref{tab:time_features} illustrates the extracted time-domain features.
+
+Fig \ref{fig:time_boxplots} shows the Time-Domain Feature Distributions Across EEG Channels.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\columnwidth]{images/time_boxplots.png}
+    \caption{Time-Domain Feature Distributions Across EEG Channels}
+    \label{fig:time_boxplots}
+\end{figure}
+
+\begin{table}[htbp]
+\centering
+\caption{Sample of Extracted Time Domain Features}
+\label{tab:time_features}
+\begin{tabular}{lcccccc}
+\toprule
+Channel & Mean & Std & Min & Max & Skewness & Kurtosis \\ 
+\midrule
+Ch1 & 0.0008 & 0.9741 & -2.6197 & 3.8527 & 0.3036 & 0.5084 \\ 
+Ch2 & 0.0080 & 0.9820 & -3.2413 & 3.0789 & 0.0803 & 0.0062 \\ 
+Ch3 & -0.0448 & 1.0097 & -2.6969 & 2.6324 & 0.0743 & -0.0561 \\ 
+Ch4 & 0.1535 & 0.9336 & -2.4239 & 2.5269 & 0.0495 & -0.2377 \\ 
+Ch5 & 0.0808 & 1.0247 & -2.8963 & 2.5797 & -0.0436 & -0.1160 \\ 
+\bottomrule
+\end{tabular}
+\end{table}
+\vspace{-1em}
+\begin{table}[htbp]
+\centering
+\caption{Sample of Extracted Frequency Domain Features}
+\label{tab:freq_features}
+\begin{tabular}{lccccc}
+\toprule
+Channel & Delta & Theta & Alpha & Beta & Gamma \\ 
+\midrule
+Ch1 & 0.008889 & 0.008709 & 0.008613 & 0.015058 & 0.013865 \\ 
+Ch2 & 0.017357 & 0.013491 & 0.024791 & 0.014951 & 0.013169 \\ 
+Ch3 & 0.014690 & 0.012114 & 0.014181 & 0.020477 & 0.014962 \\ 
+Ch4 & 0.021977 & 0.009993 & 0.010043 & 0.016333 & 0.015275 \\ 
+Ch5 & 0.020112 & 0.018040 & 0.021754 & 0.010413 & 0.024786 \\ 
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\subsubsection{Frequency-Domain Features}
+Frequency-domain features were extracted using the Welch Power Spectral Density (PSD) method, which estimates how the signal’s power is distributed across frequencies. The average power was calculated for frequency bands: Delta (1–4 Hz), Theta (4–8 Hz), Alpha (8–13 Hz), Beta (13–30 Hz), and Gamma (30–45 Hz) for each channel.
+
+Table \ref{tab:freq_features} illustrates the extracted frequency-domain features.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\columnwidth]{images/freq_barplot.png}
+    \caption{Average EEG power across frequency bands}
+    \label{fig:freq_barplot}
+\end{figure}
+
+\textit{Note: This feature extraction step was performed only for traditional machine learning models (Random Forest, XGBoost, and Logistic Regression) and was not used for the deep learning model.}
+
+
+This design choice was intentional. The deep CNN–BiLSTM model learns discriminative temporal–spatial characteristics directly from raw EEG signals, whereas traditional ML models require manually created statistical time-domain and frequency-domain features for classification. To determine whether hybrid feature fusion enhances performance, future research could examine concatenating derived spectral features with deep embeddings.
+
+
+\section{Methodology}
+\label{sec:methodology}
+
+\subsection{Machine Learning Models}
+Three machine learning models where implemented, Logistic Regression, Random Forest, and XGBoost.
+
+\textbf{Logistic Regression (LR):} Used as a baseline classifier, can handle overfitting and imbalance.
+
+\textbf{Random Forest (RF):} An ensemble of multiple decision trees trained on random subsets of features and data samples.
+
+\textbf{XGBoost (XGB):}  A boosting algorithm that builds models sequentially to correct errors.
+
+Fig \ref{fig:lr_workflow} depicts the logistic regression implementation.
+
+Fig \ref{fig:rf_workflow} shows the random forest classification implementation.
+
+Fig \ref{fig:xgb_workflow} depicts the XGBoost algorithm implementation.
+
+\begin{table}[htbp]
+\centering
+\caption{Model Parameters for Machine Learning Models}
+\label{tab:model_params}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Parameter} & \textbf{LR} & \textbf{RF} & \textbf{XGB} \\
+\midrule
+Solver / Trees & LBFGS & 200 & 150 \\
+Regularization & L2 & – & L1=0.5, L2=2.0 \\
+Class Weight & Balanced & – & – \\
+Max Iterations & 1000 & None & 3 \\
+Learning Rate & – & – & 0.15 \\
+Train–Test Split & 80:20 & 80:20 & 80:20 \\
+Random State & 42 & 42 & 42 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\columnwidth]{images/lr_workflow.png}
+    \caption{Overall Workflow of Logistic Regression Algorithm}
+    \label{fig:lr_workflow}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\columnwidth]{images/flowchart_rf.png}
+\caption{Overall Workflow of Random Forest Approach}
+\label{fig:rf_workflow}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\columnwidth]{images/xg_workflow.png}
+\caption{Overall Workflow of XGBoost Approach}
+\label{fig:xgb_workflow}
+\end{figure}
+
+\subsection{CNN-BiLSTM Hybrid Model}
+
+We created a hybrid sequential architecture to capture the spatiotemporal characteristics of multichannel EEG. The input is initially changed from (channels, timepoints) to (timepoints, channels). Features are extracted from spatial data using 1D CNN layers. Patterns and connections between electrodes are identified by them, while also reducing noise. These CNN layers create feature maps, which are sent as input to the LSTM (BiLSTM) layer. It is bidirectional in nature which captures data in both directions and understands changes over time.
+
+
+In order to achieve the binary classification between depressed and healthy participants, this combined feature set is input into fully connected layers and a final sigmoid classifier. Between the CNN layers, regularization techniques and dropout layers are used to prevent overfitting. 
+
+Fig \ref{fig:cnn_diagram} depicts the CNN-BiLSTM Model architecture.
+
+Table \ref{tab:cnn_arch} highlights the parameters and the complete architecture of the CNN-BiLSTM hybrid model. 
+
+\begin{table}[H]
+\centering
+\caption{Model Hyperparameters for training and optimization}
+\label{tab:cnn_hyperparams}
+\begin{tabular}{ll}
+\toprule
+\textbf{Hyperparameter} & \textbf{Property} \\
+\midrule
+Epochs & 50 \\
+Batch Size & 64 \\
+Learning Rate & 0.001 \\
+Optimizer & Adam \\
+Loss Function & Binary Cross-Entropy \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table*}[t]
+\centering
+\caption{CNN-BiLSTM Model Parameters} 
+\label{tab:cnn_arch}
+\begin{tabular}{p{4cm} p{10cm}}
+\toprule
+\textbf{Layer} & \textbf{Properties} \\
+\midrule
+\textbf{Input Layer} & Shape = (128 channels, 256 timepoints) → Permuted to (256, 128) \\
+\textbf{Conv1D Layer 1} & Filters = 32, Kernel Size = 3, Activation = ReLU \\
+\textbf{Batch Normalization} & Stabilizes learning\\
+\textbf{MaxPooling1D Layer 1} & Pool Size = 2 \\
+\textbf{Dropout Layer} & Dropout rate = 0.3 \\
+\textbf{Conv1D Layer 2} & Filters = 64, Kernel Size = 3, Activation = ReLU\\
+\textbf{Batch Normalization} & Further stabilizes learning \\
+\textbf{MaxPooling1D Layer 2} & Pool Size = 2 \\
+\textbf{Dropout Layer} & Dropout rate = 0.3 \\
+\textbf{BiLSTM Layer} & Units = 64, Dropout = 0.3 \\
+\textbf{Dense Layer} & 64 neurons, Activation = ReLU \\
+\textbf{Dropout Layer} & Dropout rate = 0.4 \\
+\textbf{Output Layer} & 1 neuron, Activation = Sigmoid \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.8\textwidth]{images/cnn_diagram.png} 
+\caption{Architecture of CNN-BiLSTM Hybrid Model}
+\label{fig:cnn_diagram} % Changed label to be unique
+\end{figure*}
+
+
+\subsection{Evaluation of Training Model}
+Model performance was evaluated using Accuracy, Precision, Recall, F1-Score, ROC-AUC.
+
+\[
+\text{Accuracy} = \frac{TP + TN}{TP + TN + FP + FN}
+\]
+
+\[
+\text{Precision} = \frac{TP}{TP + FP}
+\]
+
+\[
+\text{Recall} = \frac{TP}{TP + FN}
+\]
+
+\[
+\text{F1-Score} = 2 \times \frac{\text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}}
+\]
+
+ROC-AUC represents the model’s ability to differentiate MDD from HC (AUC = 1: perfect, AUC = 0.5: random).  
+
+\section{Results}
+\label{sec:results}
+
+\subsection{Machine Learning Models}
+\textbf{Logistic Regression} achieved an epoch-level accuracy of 87.7\% with AUC $\approx$ 0.90 but a slightly lower recall for the MDD class (0.83). 
+
+\textbf{Random Forest}  achieved an epoch-level accuracy of 92.7\% with AUC near 0.95 ,  achieving strong generalization. 
+
+
+\textbf{XGBoost} achieved the highest epoch-level accuracy of 94.8\% , among all other evaluated machine learning models.
+
+Table \ref{tab:classification_comparison} gives the classification report comparison between ML models and the CNN-BiLSTM Hybrid Model.
+
+Fig \ref{fig:combined_roc} shows the comparison of ROC curves of the three ML models.
+
+\begin{table*}[t]
+\centering
+\caption{Classification Report Comparison Across Models}
+\label{tab:classification_comparison}
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Model} & \textbf{Class} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} & \textbf{Accuracy} & \textbf{Support} \\
+\midrule
+\multirow{Logistic Regression} 
+ & 0 (Healthy Control) & 0.87 & 0.91 & 0.89 & \multirow{0.877} & 209 \\
+ & 1 (MDD) & 0.89 & 0.83 & 0.86 &  & 172 \\
+ & Macro Avg & 0.88 & 0.87 & 0.87 &  &  \\
+\midrule
+\multirow{Random Forest} 
+ & 0 (Healthy Control) & 0.91 & 0.96 & 0.93 & \multirow{0.927} & 209 \\
+ & 1 (MDD) & 0.95 & 0.88 & 0.92 &  & 172 \\
+ & Macro Avg & 0.93 & 0.92 & 0.93 &  &  \\
+ \midrule
+ \multirow{XGBoost} 
+ & 0 (Healthy Control) & 0.94 & 0.97 & 0.95 & \multirow{0.948} & 209 \\
+ & 1 (MDD) & 0.96 & 0.92 & 0.94 &  & 172 \\
+ & Macro Avg & 0.95 & 0.95 & 0.95 &  &  \\
+\midrule
+\multirow{CNN–BiLSTM} 
+ & 0 (Healthy Control) & 0.96 & 0.97 & 0.97 & \multirow{0.962} & 1657 \\
+ & 1 (MDD) & 0.96 & 0.95 & 0.96 &  & 1358 \\
+ & Macro Avg & 0.96 & 0.96 & 0.95 &  &  \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth]{images/combined_roc_curve.png}
+    \caption{Comparison of ROC Curves of the three traditional Machine Learning Models}
+    \label{fig:combined_roc}
+\end{figure}
+
+
+\subsection{CNN-BiLSTM Hybrid Model}
+The CNN–BiLSTM hybrid model achieved an spectacular overall accuracy of 96.2\%. For HC (Category 0), it recorded a precision of 0.96, recall of 0.97, and F1-score of 0.97, indicating impressive detection consistency. For MDD(Category 1), it achieved a precision of 0.96, recall of 0.95, and F1-score of 0.96. These results indicate that this model can effectively identify both the classes.
+
+Fig \ref{fig:cnn_results} shows the ROC Curve for CNN-BiLSTM Model.
+
+\begin{figure}[htbp]
+\centering
+\begin{subfigure}{0.9
+\columnwidth}
+    \includegraphics[width=\linewidth]{images/roc_cnn.png}
+\end{subfigure}
+\caption{ROC Curve for CNN-BiLSTM Model}
+\label{fig:cnn_results}
+\end{figure}
+
+
+
+\section{Discussion}
+\label{sec:discussion}
+As shown in our comparison, there was a clear performance hierarchy. The hybrid CNN-BiLSTM model achieved the highest accuracy of 96.2\%, exceeding the top-performing traditional XGBoost model’s 94.8\% and Random Forest’s 92.7\%. The hybrid model also outperformed the baseline models made by other researchers in terms of accuracy and f1 score. Beyond accuracy, the hybrid model demonstrated stronger capability in capturing non-linear and non-stationary EEG dynamics, enabling more reliable mental health assessment.
+
+Even with these promising outcomes, the deep learning model remains a "black box", making it challenging to determine which EEG channels or frequency bands are most important for classification. In contrast, ensemble models like XGBoost, though slightly less accurate, offer better interpretability through feature importance rankings. Future research will visualize channel-level and spectral importance using explainability techniques like SHAP and Grad-CAM to enhance interpretability and show which EEG channels or frequency bands provide greater contributions toward classifying depression. Furthermore, future studies should focus on (i) cross-subject generalization with more diverse and larger EEG datasets to improve robustness, and (ii) multi-modal data fusion by combining EEG with behavioral or auditory cues for a comprehensive evaluation of mental health.
+
+\section{Conclusion}
+\label{sec:conclusion}
+This study was done on EEG based MODMA dataset to detect depression using traditional machine learning models (XGBoost, Logistic Regression, Random Forest) and a hybrid deep learning CNN-BiLSTM model. The CNN-BiLSTM achieved the highest accuracy of 96.2\% by effectively capturing complex spatial and temporal patterns. XGBoost and Random Forest achieved 94.8\% and 92.7\% accuracy, while Logistic Regression achieved 87.7\%. Traditional ML models were faster and simpler, but the hybrid deep learning model proved to be better in understanding complex data patterns. However, the limited dataset of 53 participants posed challenges for generalization. Future work, as discussed earlier, will focus on enhancing interpretability and cross-subject robustness. Overall, this research establishes a strong baseline for data-driven mental health diagnostics, moving toward reliable and clinically applicable depression detection systems.
+
+\section*{Acknowledgment}
+The authors would like to thank the Department of Artificial Intelligence, National Institute of Technology, Surat, for providing computational resources and guidance throughout the research. The authors also sincerely acknowledge Dr. Tanmoy Hazra for his valuable support and insights during the project.
+
+
+\begin{thebibliography}{00}
+
+\bibitem{b1}
+Acharya, U. R., Oh, S. L., Hagiwara, Y., Tan, J. H., and Adeli, H. (2018). Automated EEG-based screening of depression using deep convolutional neural network. \textit{Computer Methods and Programs in Biomedicine}, 161, 103–113. Available at: \url{https://pmc.ncbi.nlm.nih.gov/articles/PMC10217709/}
+
+\bibitem{b2}
+Hosseinifard, B., Moradi, M. H., and Rostami, R. (2013). Classifying depression patients and normal subjects using machine learning techniques and nonlinear features from EEG signals. \textit{Computer Methods and Programs in Biomedicine}, 109(3), 339–345. Available at: \url{https://www.sciencedirect.com/science/article/pii/S2590093521000461}
+
+\bibitem{b3}
+Sarkar, P., Kataria, S., and Deshmukh, P. (2022). A deep learning-based comparative study to track mental depression from EEG data. \textit{Neuroscience Informatics}, 2(2), 100039. Available at: \url{https://www.sciencedirect.com/science/article/pii/S2772528622000012}
+
+\bibitem{b4}
+Li, X., Hu, B., Sun, S., and Xu, L. (2021). Deep learning models for EEG-based emotion and depression recognition: A comparative study. \textit{Journal of Neural Engineering}, 18(4), 046089. Available at: \url{https://www.imrpress.com/journal/JIN/22/4/10.31083/j.jin2204093/htm}
+
+\bibitem{b5}
+Mahato, S., and Paul, S. (2020). Detection of major depressive disorder using linear and nonlinear features from EEG signals. \textit{Biomedical Signal Processing and Control}, 59, 101875. Available at: \url{https://doi.org/10.1016/j.bspc.2020.101875}
+
+\bibitem{b6}
+Oh, S. L., Vicnesh, J., Ciaccio, E. J., Yuvaraj, R., and Acharya, U. R. (2019). Deep convolutional neural network model for automated diagnosis of major depressive disorder using EEG signals. \textit{Applied Intelligence}, 49, 1926–1936. Available at: \url{https://doi.org/10.1007/s10489-018-1360-2}
+
+\bibitem{b7}
+Yao, Z., Zheng, L., Wang, Y., and Lu, C. (2021). Ensemble learning for EEG-based depression detection using multiple frequency band features. \textit{Frontiers in Human Neuroscience}, 15, 654390. Available at: \url{https://doi.org/10.3389/fnhum.2021.654390}
+
+\bibitem{b8}
+Liu, W., Zhang, L., and Zhao, Y. (2023). Hybrid CNN–BiLSTM network for EEG-based mental disorder classification. \textit{Sensors}, 23(1), 434. Available at: \url{https://doi.org/10.3389/s23010434}
+
+\bibitem{b9}
+Zheng, W. L., and Lu, B. L. (2015). Investigating critical frequency bands and channels for EEG-based emotion recognition with deep neural networks. \textit{IEEE Transactions on Autonomous Mental Development}, 7(3), 162–175. Available at: \url{https://doi.org/10.1109/TAMD.2015.2431497}
+
+\bibitem{b10}
+Yao, D., and Xu, P. (2022). EEG-based depression detection using machine learning and brain connectivity features. \textit{Frontiers in Psychiatry}, 13, 987542. Available at: \url{https://doi.org/10.3389/fpsyt.2022.987542}
+
+\bibitem{b11}
+Khan, S., Saeed, S. M. U., Frnda, J., Arsalan, A., Amin, R., Gantassi, R., and Noorani, S. H. (2024). A machine learning based depression screening framework using temporal domain features of the electroencephalography signals. \textit{PLoS One}, 19(3), e0299127. Available at: \url{https://pmc.ncbi.nlm.nih.gov/articles/PMC10971749/}
+
+\bibitem{b12}
+Ksibi, A., Zakariah, M., Menzli, L. J., Saidani, O., Almuqren, L., and Hanafieh, R. A. M. (2023). Electroencephalography-Based Depression Detection Using Multiple Machine Learning Techniques. \textit{Diagnostics}, 13(10), 1779. Available at: \url{https://pmc.ncbi.nlm.nih.gov/articles/PMC10217709/}
+
+\bibitem{b13}
+Li, M., Liu, Y., Liu, Y., Pu, C., Yin, R., Zeng, Z., Deng, L., and Wang, X. (2022). Resting-state EEG-based convolutional neural network for the diagnosis of depression and its severity. \textit{Frontiers in Physiology}, 13, 956254. Available at: \url{https://www.frontiersin.org/journals/physiology/articles/10.3389/fphys.2022.956254/full}
+
+\bibitem{b14}
+Liu, W., Jia, K., and Wang, Z. (2024). Leveraging deep learning for robust EEG analysis in neuropsychiatry: EEG Mind-Transformer with Dynamic Temporal Graph Attention. \textit{Frontiers in Neuroinformatics}, 18, 1494970. Available at: \url{https://www.frontiersin.org/journals/neuroinformatics/articles/10.3389/fninf.2024.1494970/full}
+
+\bibitem{b15}
+Thongkam, T., Suksawat, B., and Yamaka, W. (2024). Hybrid Machine Learning Approaches for Predicting and Detecting Depression Using EEG Signals. \textit{International Journal of Advanced Computer Science and Applications}, 15(3), 685–693. Available at: \url{https://thesai.org/Downloads/Volume15No3/Paper_63-Hybrid_Machine_Learning_Approaches.pdf}
+
+\bibitem{b16}
+Zhao, W., Pan, J., and Li, C. (2025). EEG-based depression detection using attention-based deep learning with the MODMA dataset. \textit{Scientific Reports}, 15, Article 02452. Available at: \url{https://www.nature.com/articles/s41598-025-02452-7}
+
+\bibitem{b17}
+Chung, Y. G., Kim, J., and Han, S. W. (2024). Depression assessment using integrated multi-featured EEG sub-bands with LSTM-DNN ensemble learning model. \textit{Biomedical Engineering Letters}, 14, 563–574. Available at: \url{https://pmc.ncbi.nlm.nih.gov/articles/PMC11016871/}
+
+\bibitem{b18}
+Yang, S., Li, B., Zhang, Y., Duan, M., Liu, S., Zhang, Y., Feng, X., Tan, R., Huang, L., and Zhao, G. (2023). Depression Detection Based on Analysis of EEG Signals in Combination of Complex Networks and Machine Learning. \textit{Brain Sciences}, 13(7), 1030. Available at: \url{https://pubmed.ncbi.nlm.nih.gov/37519158/}
+
+\bibitem{b19}
+Sharma, M., Acharya, U. R., Chakraborty, R., and Pal, S. (2024). Automated detection of depression using wavelet scattering networks and ensemble methods with EEG signals. \textit{Artificial Intelligence in Medicine}, 149, 102799. Available at: \url{https://www.sciencedirect.com/science/article/abs/pii/S1350453324000092}
+
+\bibitem{b20}
+Suzuki, T., Uchida, S., Kimura, T., and Sugimoto, M. (2024). Machine-Learning-Based Depression Detection Model Using Prefrontal Single-Channel Electroencephalography. \textit{Sensors}, 24(22), 7152. Available at: \url{https://pmc.ncbi.nlm.nih.gov/articles/PMC11591631/}
+
+\bibitem{b21} Čukić, M., Pokrajac, D., Stokić, M., Simić, S., Radivojević, V., and Ljubisavljević, M. (2018). EEG machine learning with Higuchi fractal dimension and sample entropy as features for successful detection of depression. Journal of Neuroscience Methods, [preprint]. Available at: \url{https://arxiv.org/abs/1803.05985}
+
+\bibitem{b22} Zhang, Z.-Y., Xu, C.-Y., Zhao, L.-X., Hou, H.-R., and Meng, Q.-H. (2025). Cross-subject depression level classification using EEG signals with a sample confidence method. IEEE/ArXiv Preprint, [under review]. Available at: \url{https://arxiv.org/abs/2503.13475}
+
+\bibitem{b23} Kwok, A. M. H., Cheong, J., Kalkan, S., and Gunes, H. (2025). Machine learning fairness for depression detection using EEG data. ArXiv Preprint, January 2025. Available at: \url{https://arxiv.org/abs/2501.18192}
+
+\bibitem{b24} Li, H., Wang, L., and Zhang, X. (2023). EEG-based high-performance depression state recognition: W-GCN-GRU method. Frontiers in Neuroscience, 17, 1301214. Available at: \url{https://www.frontiersin.org/articles/10.3389/fnins.2023.1301214/full}
+
+\bibitem{b25} Zhang, Y., Zhang, Y., Li, B., Duan, M., Liu, S., and Feng, X. (2023). Depressive disorder recognition based on frontal EEG signals using multi-resolution CNN-LSTM (MRCNN-LSTM) and MRCNN-RSE deep learning models. Sensors, 23(20), 8639. Available at: \url{https://www.mdpi.com/1424-8220/23/20/8639}
+
+
+\end{thebibliography}
+
+
+\end{document}
